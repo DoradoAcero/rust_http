@@ -94,6 +94,15 @@ version = "0.1.0"
 dependencies = [
  "byteorder",
  "rand",
+ "rust_tcp",
+]
+
+[[package]]
+name = "rust_tcp"
+version = "0.1.0"
+dependencies = [
+ "byteorder",
+ "rand",
 ]
 
 [[package]]
