@@ -44,8 +44,8 @@ impl HttpResponse {
         response_string
     }
 
-    pub fn from_string(req_string: String) -> Result<HttpResponse, Error> {
-        let mut lines = req_string.lines();
+    pub fn from_string(response_string: String) -> Result<HttpResponse, Error> {
+        let mut lines = response_string.lines();
 
         // handle all these unwraps better, I should wrap this in results and whatnot
         let mut first_line_options = lines.next().unwrap().split_whitespace();
