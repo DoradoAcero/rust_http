@@ -1,7 +1,7 @@
-use std::{io::Result, vec};
+use std::{io::Result, thread::sleep, time::Duration, vec};
 
 use echo_server::setup_server;
-use http::{HttpMethod, HttpRequest, HttpResponse};
+use http::{HttpHeader, HttpMethod, HttpRequest, HttpResponse};
 use response_codes::ResponseCode;
 use rust_tcp::port::TcpPort;
 
@@ -10,14 +10,21 @@ mod http;
 mod echo_server;
 
 fn main() -> Result<()> {
-    let server_addr ="127.0.0.1:8000".to_string();
-    let client_addr = "127.0.0.1:8001".to_string();
+    let server_addr ="127.0.0.1:8004".to_string();
+    let client_addr = "127.0.0.1:8005".to_string();
     let socket = TcpPort::new(&client_addr).expect("couldn't bind to client address");
     
     let req = HttpRequest {
         method: HttpMethod::Get,
         endpoint: "localhost:8000".to_string(),
         headers: vec![],
+        body: "Hello, ".to_string()
+    };
+
+    let pwost = HttpRequest {
+        method: HttpMethod::Post,
+        endpoint: "notice this doesn't do jack yet".to_string(),
+        headers: vec![HttpHeader{ key: "host".to_string(), value: "localhost:8000".to_string() }],
         body: "Hello, ".to_string()
     };
 
@@ -30,13 +37,16 @@ fn main() -> Result<()> {
     };
     assert!(res == HttpResponse::from_string(res.to_string()).unwrap());
 
-    // println!("{}", req.to_string());
-    // println!("{}", res.to_string());
     setup_server(&server_addr)?;
 
     socket.send(req.to_string(), &server_addr)?;
     let (response, _) = socket.recieve()?;
-    println!("{:.?}", HttpResponse::from_string(response));
+    println!("{:.?}", HttpResponse::from_string(response)?);
+
+
+    socket.send(pwost.to_string(), &server_addr)?;
+    let (response, _) = socket.recieve()?;
+    println!("{:.?}", HttpResponse::from_string(response)?);
 
     Ok(())
 }

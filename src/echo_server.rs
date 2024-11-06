@@ -15,8 +15,8 @@ pub fn setup_server(server_addr: &String) -> Result<()> {
             let req = HttpRequest::from_string(req_string)?;
             let echo_res = HttpResponse { 
                 status_code: ResponseCode::OK,
-                headers: vec![],
-                body: format!("{:.?} {}", req.method, req.endpoint),
+                headers: req.headers.clone(),
+                body: format!("{:.?}", req),
             };
             socket.send(echo_res.to_string(), &src)?;
         }

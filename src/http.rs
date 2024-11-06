@@ -12,13 +12,13 @@ pub enum HttpMethod {
     Delete,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct HttpHeader {
-    key: String,
-    value: String,
+    pub key: String,
+    pub value: String,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 pub struct HttpRequest {
     pub method: HttpMethod,
     pub endpoint: String,
@@ -52,7 +52,7 @@ impl HttpResponse {
         let version = first_line_options.next().unwrap();
         let status_code = first_line_options.next().unwrap();
         let status_code = ResponseCode::from_value(status_code.parse::<u32>().unwrap());
-        assert!(version == HTTP_VERSION, "Must be my http version");
+        assert!(version == HTTP_VERSION, "Must be my http version response");
 
         let mut line = lines.next().unwrap();
         let mut headers = vec![];
@@ -79,7 +79,8 @@ impl HttpResponse {
 
 impl HttpRequest {
     pub fn to_string(&self) -> String {
-        let mut request_string = format!("{:.?} {} {}\n", self.method, self.endpoint, HTTP_VERSION);
+        let processed_endpoint = self.endpoint.replace(" ", "%20");
+        let mut request_string = format!("{:.?} {} {}\n", self.method, processed_endpoint, HTTP_VERSION);
         for header in &self.headers {
             request_string.push_str(&format!("{}: {}\n", header.key, header.value));
         }
@@ -94,9 +95,9 @@ impl HttpRequest {
         // handle all these unwraps better, I should wrap this in results and whatnot
         let mut first_line_options = lines.next().unwrap().split_whitespace();
         let method = first_line_options.next().unwrap();
-        let endpoint = first_line_options.next().unwrap();
+        let endpoint = first_line_options.next().unwrap().replace("%20", " ");
         let version = first_line_options.next().unwrap();
-        assert!(version == HTTP_VERSION, "Must be my http version");
+        assert!(version == HTTP_VERSION, "Must be my http version request");
 
         let method = if method == "Get" {
             HttpMethod::Get
