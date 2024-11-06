@@ -1,5 +1,5 @@
 use std::thread;
-use std::{io::Result, vec};
+use std::io::Result;
 
 use crate::http::{HttpRequest, HttpResponse};
 use crate::response_codes::ResponseCode;
