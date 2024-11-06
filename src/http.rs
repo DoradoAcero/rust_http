@@ -3,8 +3,9 @@ use rand::Error;
 use crate::response_codes::ResponseCode;
 
 pub const HTTP_VERSION: &str = "HTTP/l.l";
+pub const HTTP_METHODS: &[HttpMethod] = &[HttpMethod::Get, HttpMethod::Post, HttpMethod::Put, HttpMethod::Delete];
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum HttpMethod {
     Get,
     Post,
