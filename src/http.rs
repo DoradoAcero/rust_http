@@ -76,6 +76,14 @@ impl HttpResponse {
 
         Ok(HttpResponse { status_code, headers, body })
     }
+
+    pub fn create_404() -> HttpResponse {
+        HttpResponse {
+            status_code: ResponseCode::NotFound,
+            headers: vec![],
+            body: "".to_string(),
+        }
+    }
 }
 
 impl HttpRequest {

@@ -1,8 +1,8 @@
-use std::{io::Error, mem::ManuallyDrop, thread};
+use std::{collections::HashMap, io::Error, thread};
 
-use rust_tcp::{port::TcpPort, unwrap_or_continue};
+use rust_tcp::port::TcpPort;
 
-use crate::{http::{HttpMethod, HttpRequest, HttpResponse}, response_codes::ResponseCode};
+use crate::http::{HttpMethod, HttpRequest, HttpResponse};
 
 
 pub trait Endpoint: Send {
@@ -11,98 +11,53 @@ pub trait Endpoint: Send {
     fn get_endpoint_type(&self) -> HttpMethod;
 }
 
-enum RouteItem<'a> {
-    Route(ManuallyDrop<Route<'a>>),
-    Endpoint(&'a mut dyn Endpoint),
-}
-
-pub struct Route<'a> {
-    path: String,
-    endpoints: Vec<RouteItem<'a>>,
-}
-
-impl Route<'_> {
-    pub fn pass_message(&self, req: HttpRequest) -> HttpResponse {
-        if req.endpoint == "/" {
-            for endpoint in &self.endpoints {
-                match endpoint {
-                    RouteItem::Endpoint(endpoint) => {
-                        return endpoint.process(req)
-                    },
-                    RouteItem::Route(_) => (),
-                };
-            };
-            return HttpResponse {
-                status_code: ResponseCode::NotFound,
-                headers: vec![],
-                body: "".to_string(),
-            };
-        };
-        for endpoint in &self.endpoints {
-            let path = req.endpoint.split("/").next().unwrap();
-            match endpoint {
-                RouteItem::Route(manually_drop) => {
-                    if manually_drop.path == path {
-                        return manually_drop.pass_message(req);
-                    }
-                },
-                RouteItem::Endpoint(_) => (),
-            }
-        };
-        return HttpResponse {
-            status_code: ResponseCode::NotFound,
-            headers: vec![],
-            body: "".to_string(),
-        };
-    }
-}
-
-pub struct Router<'a> {
+pub struct Router {
     socket: TcpPort,
-    root_route: Route<'a>,
+    endpoints: HashMap<String, Vec<Box<dyn Endpoint>>>,
 }
 
-impl Router<'_> {
+impl Router {
     pub fn new(server_addr: &String) -> Result<Router, Error> {
         Ok(Router {
             socket: TcpPort::new(server_addr)?,
-            root_route: Route { path: "/".to_string(), endpoints: vec![] },
+            endpoints: HashMap::new(),
         })
     }
 
-    pub fn pass_message(&self, req: HttpRequest) -> HttpResponse {
-        self.root_route.pass_message(req)
+    pub fn add_endpoint(&mut self, path: String, endpoint:Box<dyn Endpoint>) {
+        match self.endpoints.get_mut(&path) {
+            Some(endpoints) => {
+                endpoints.push(endpoint); // TODO will overlap if multiple / gets are added
+            },
+            None => {
+                self.endpoints.insert(path, vec![endpoint]);
+            }
+        }
     }
 
-    pub fn add_endpoint(&mut self, path: String, endpoint: impl Endpoint) {
-        let route = self.root_route;
-        while let Some(processed_path) = path.split("/").next() {
-            let route_item = route.endpoints.iter().find(|route_item| {
-                match route_item {
-                    RouteItem::Endpoint(_) => false,
-                    RouteItem::Route(route) => route.path == processed_path,
+    pub fn process_req(&self, req: HttpRequest) -> HttpResponse {
+        match self.endpoints.get(&req.endpoint) {
+            None => HttpResponse::create_404(),
+            Some(endpoints) => {
+                for endpoint in endpoints {
+                    if endpoint.get_endpoint_type() == req.method {
+                        return endpoint.process(req)
+                    }
                 }
-            }).unwrap_or(&RouteItem::Route(ManuallyDrop::new(Route { path: processed_path.to_string(), endpoints: vec![] })));
-            match route_item {
-                RouteItem::Endpoint(_) => (),
-                RouteItem::Route(route_inner) => route = route_inner.to_owned(),
+                HttpResponse::create_404()
             }
         }
     }
 
     pub fn server_loop(self) -> Result<(), Error> {
-    thread::spawn(move || -> Result<(), Error> {
-        loop {
-            let (req_string, src) = self.socket.recieve()?;
-            let req = HttpRequest::from_string(req_string)?;
-            let echo_res = HttpResponse { 
-                status_code: ResponseCode::OK,
-                headers: req.headers.clone(),
-                body: format!("{:.?}", req),
-            };
-            self.socket.send(echo_res.to_string(), &src)?;
-        }
-    });
-    Ok(())
+        thread::spawn(move || -> Result<(), Error> {
+            loop {
+                let (req_string, src) = self.socket.recieve()?;
+                let req = HttpRequest::from_string(req_string)?;
+                let res = self.process_req(req);
+                self.socket.send(res.to_string(), &src)?;
+            }
+        });
+        Ok(())
     }
 }
