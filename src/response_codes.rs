@@ -7,6 +7,7 @@ pub enum ResponseCode {
     OK,                 // 200
     Created,            // 201
     Accepted,           // 202
+    NotFound,           // 404
 }
 
 impl ResponseCode {
@@ -19,6 +20,7 @@ impl ResponseCode {
             ResponseCode::OK => 200,
             ResponseCode::Created => 201,
             ResponseCode::Accepted => 202,
+            ResponseCode::NotFound => 404,
         }
     }
 
@@ -31,6 +33,7 @@ impl ResponseCode {
             200 => ResponseCode::OK,
             201 => ResponseCode::Created,
             202 => ResponseCode::Accepted,
+            404 => ResponseCode::NotFound,
             _ => panic!("response code not valid") // TODO handle this better
         }
     }
