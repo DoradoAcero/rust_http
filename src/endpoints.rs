@@ -22,6 +22,24 @@ pub fn get(function_pointer: EndpointProcess) -> Box<GetEndpoint> {
 }
 
 
+pub struct PostEndpoint {
+    function_pointer: EndpointProcess
+}
+
+impl Endpoint for PostEndpoint {
+    fn process(&self, req: HttpRequest) -> HttpResponse {
+        (self.function_pointer)(req)
+    }
+
+    fn get_endpoint_type(&self) -> HttpMethod {
+        HttpMethod::Post
+    }
+}
+
+pub fn post(function_pointer: EndpointProcess) -> Box<PostEndpoint> {
+    Box::new(PostEndpoint { function_pointer })
+}
+
 
 pub struct DeleteEndpoint {
     function_pointer: EndpointProcess
