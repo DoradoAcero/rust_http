@@ -24,7 +24,7 @@ impl Router {
         })
     }
 
-    pub fn add_endpoint(&mut self, path: String, endpoint:Box<dyn Endpoint>) {
+    pub fn add_endpoint(mut self, path: String, endpoint:Box<dyn Endpoint>) -> Self {
         match self.endpoints.get_mut(&path) {
             Some(endpoints) => {
                 endpoints.push(endpoint); // TODO will overlap if multiple / gets are added
@@ -33,6 +33,7 @@ impl Router {
                 self.endpoints.insert(path, vec![endpoint]);
             }
         }
+        self
     }
 
     pub fn process_req(&self, req: HttpRequest) -> HttpResponse {
