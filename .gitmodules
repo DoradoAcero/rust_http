@@ -1,3 +1,4 @@
 [submodule "rust_tcp"]
 	path = rust_tcp
 	url = https://github.com/DoradoAcero/rust_tcp.git
+	branch = master
